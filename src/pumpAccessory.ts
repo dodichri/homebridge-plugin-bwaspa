@@ -44,7 +44,7 @@ export class PumpAccessory {
     // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
     // until it is set automatically
-    this.numSpeedSettings = 0;
+    this.numSpeedSettings = 2;
     this.name = (pumpNumber == 0 ? "Circulation Pump" : "Pump " + pumpNumber);
 
     // Important note: Home/Siri call both the "on" and the "setRotationSpeed" together when the pump

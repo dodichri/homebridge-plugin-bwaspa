@@ -83,7 +83,7 @@ export class SpaHomebridgePlatform implements DynamicPlatformPlugin {
     }
     // Create and load up our primary client which connects with the spa
     this.spa = new SpaClient(this.log, ipAddress, this.spaConfigurationKnown.bind(this),
-      this.updateStateOfAccessories.bind(this), this.executeAllRecordedActions.bind(this), devMode);
+      this.updateStateOfAccessories.bind(this), this.executeAllRecordedActions.bind(this), this.config.interval, devMode);
   }
 
   /**

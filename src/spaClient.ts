@@ -110,6 +110,7 @@ export class SpaClient {
     // Stored so that we can cancel intervals if needed
     faultCheckIntervalId: any;
     stateUpdateCheckIntervalId: any;
+	updateInterval: number;
     // Can be set in the overall config to provide more detailed logging
     devMode: boolean;
 
@@ -118,13 +119,17 @@ export class SpaClient {
 
     temperatureHistory : (number|undefined)[] = new Array();
 
-    constructor(public readonly log: Logger, public readonly host: string, 
+    constructor(public readonly log: Logger, 
+	  public readonly host: string, 
       public readonly spaConfigurationKnownCallback: () => void, 
-      public readonly changesCallback: () => void, 
-      public readonly reconnectedCallback: () => void, devMode?: boolean) {
+      public readonly changesCallback: () => void, 	  
+      public readonly reconnectedCallback: () => void, 
+	  updateInterval: number, 
+	  devMode?: boolean) {
         this.accurateConfigReadFromSpa = false;
         this.isCurrentlyConnectedToSpa = false;
         this.devMode = (devMode ? devMode : false);
+		this.updateInterval = updateInterval;
         // Be generous to start. Once we've read the config we will reduce the number of lights
         // if needed.
         this.lightIsOn = [false,false];
@@ -260,7 +265,7 @@ export class SpaClient {
             if (this.isCurrentlyConnectedToSpa) {
                 this.checkWeHaveReceivedStateUpdate();
             }
-        }, 15 * 60 * 1000)
+        }, this.updateInterval * 60 * 1000)
         
         // Call to ensure we catch up on anything that happened while we
         // were disconnected.
@@ -289,7 +294,7 @@ export class SpaClient {
                 chunk = this.concat(this.lastIncompleteChunk, chunk);
                 this.log.debug("Merging messages of length", this.lastIncompleteChunk.length, "and", chunk.length);
             } else {
-                this.log.warn("Discarding old, incomplete message", this.prettify(this.lastIncompleteChunk));
+                this.log.debug("Discarding old, incomplete message", this.prettify(this.lastIncompleteChunk));
             }
             this.lastIncompleteChunk = undefined;
             this.lastChunkTimestamp = undefined;
@@ -299,7 +304,7 @@ export class SpaClient {
 
         while (chunk.length > 0) {
             if (chunk.length < 2) {
-                this.log.error("Very short message received (ignored)", this.prettify(chunk));
+                this.log.debug("Very short message received (ignored)", this.prettify(chunk));
                 break;
             }
             // Length is the length of the message, which excludes the checksum and 0x7e end.
@@ -321,7 +326,7 @@ export class SpaClient {
                     const checksum = thisMsg[msgLength];
                     // Seems like a good message. Check the checksum is ok
                     if (checksum != this.compute_checksum(new Uint8Array([msgLength]), thisMsg.slice(2,msgLength))) {
-                        this.log.error("Bad checksum", checksum, "for", this.prettify(thisMsg));
+                        this.log.debug("Bad checksum", checksum, "for", this.prettify(thisMsg));
                     } else {
                         const somethingChanged = this.readAndActOnMessage(msgLength, checksum, thisMsg);
                         if (somethingChanged) {
@@ -354,7 +359,7 @@ export class SpaClient {
                 messagesProcessed++;
             } else {
                 // Message didn't start/end correctly
-                this.log.error("Message with bad terminations encountered:", this.prettify(chunk));
+                this.log.debug("Message with bad terminations encountered:", this.prettify(chunk));
             }
             // Process rest of the chunk, as needed (go round the while loop).
             // It might contain more messages
@@ -1025,7 +1030,7 @@ export class SpaClient {
             // Various messages about controls, filters, etc. In theory we could
             // choose to implement more things here, but limited value in it.
             if (!recognised) {
-                this.log.info("Not understood a received spa message", 
+                this.log.debug("Not understood a received spa message", 
                 "(nothing critical, but please do report this):" + this.prettify(msgType), 
                 " contents: "+ this.prettify(contents));
             }
